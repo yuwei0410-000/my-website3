@@ -46,7 +46,6 @@
     <a href="course.html">📘 課程練習</a>
     <a href="review.html">🏆 個人成果</a>
     <a href="admin.html">📊 成績檢視</a>
-    
     <a href="profile.html">⚙️ 設定</a>
   </nav>
 
@@ -80,9 +79,10 @@
     const auth = getAuth(app);
 
     const modules = [
-      { key: "safety_intro", name: "我都知道了", icon: "🧯" },
+      { key: "safety_quiz", name: "我都知道了", icon: "🧯" },
       { key: "battery_simulation", name: "聯聯看高手", icon: "🔋" },
-      { key: "electrical_safety", name: "安全標兵", icon: "💡" }
+      { key: "electrical_safety", name: "安全標兵", icon: "💡" },
+       // ✅ 新增模組
     ];
 
     onAuthStateChanged(auth, (user) => {
@@ -104,7 +104,7 @@
 
           modules.forEach(module => {
             const record = data[module.key];
-            const isCompleted = record?.result === "完成";
+            const isCompleted = typeof record?.score === "number";
             const score = record?.score;
 
             const card = document.createElement("div");
