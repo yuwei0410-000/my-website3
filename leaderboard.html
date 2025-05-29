@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>🏆 課程排行榜</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    select {
+      padding: 6px;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+
+    #no-data {
+      text-align: center;
+      color: #888;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    <a href="leaderboard.html">🥇 排行榜</a>
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main>
+    <h1 style="text-align:center;">🏆 課程排行榜</h1>
+    <div style="text-align:center;">
+      <label for="course-select">請選擇課程：</label>
+      <select id="course-select">
+        <option value="electrical_safety">💡 電器安全</option>
+        <option value="battery_simulation">🔋 電池模擬</option>
+        <option value="safety_intro">🧪 實驗室須知</option>
+      </select>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>名次</th>
+          <th>暱稱</th>
+          <th>分數</th>
+          <th>耗時</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
+
+    <div id="no-data" style="display: none;">目前尚無成績資料</div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const leaderboardBody = document.getElementById("leaderboard-body");
+    const courseSelect = document.getElementById("course-select");
+    const noData = document.getElementById("no-data");
+
+    function formatDuration(ms) {
+      if (!ms || ms < 0) return "—";
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remain = seconds % 60;
+      return `${minutes}分 ${remain}秒`;
+    }
+
+    function loadLeaderboard(courseKey) {
+      const usersRef = ref(db, 'users');
+      onValue(usersRef, (snapshot) => {
+        const data = snapshot.val();
+        const leaderboard = [];
+
+        for (const uid in data) {
+          const user = data[uid];
+          const record = user[courseKey];
+          if (user.nickname && record && record.score !== undefined) {
+            const start = record.startTime || null;
+            const end = record.timestamp || null;
+            const duration = start && end ? end - start : null;
+
+            leaderboard.push({
+              name: user.nickname,
+              score: record.score,
+              duration: duration
+            });
+          }
+        }
+
+        leaderboard.sort((a, b) => {
+          if (b.score !== a.score) {
+            return b.score - a.score;
+          } else {
+            return (a.duration ?? Infinity) - (b.duration ?? Infinity);
+          }
+        });
+
+        if (leaderboard.length === 0) {
+          leaderboardBody.innerHTML = '';
+          noData.style.display = 'block';
+        } else {
+          noData.style.display = 'none';
+          leaderboardBody.innerHTML = leaderboard.map((user, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${user.name}</td>
+              <td>${user.score}</td>
+              <td>${formatDuration(user.duration)}</td>
+            </tr>
+          `).join('');
+        }
+      });
+    }
+
+    loadLeaderboard(courseSelect.value);
+    courseSelect.addEventListener('change', () => {
+      loadLeaderboard(courseSelect.value);
+    });
+  </script>
+</body>
+</html>

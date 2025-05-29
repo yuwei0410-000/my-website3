@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>個人學習成果</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .module-card {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      width: 200px;
+      background-color: #fff;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .module-card.completed {
+      border-color: #4caf50;
+    }
+
+    .badge, .user-info, .progress-rate {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+
+    .badge {
+      font-size: 24px;
+      color: #f39c12;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main class="content-container">
+    <h1>📘 個人資料</h1>
+
+    <div class="user-info" id="userInfo">👤 使用者資訊載入中...</div>
+    <div class="progress-rate" id="progressRate"></div>
+
+    <section>
+      <h2>🏆 個人成就卡片</h2>
+      <div class="card-container" id="cardContainer"></div>
+      <div class="badge" id="badgeDisplay"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const modules = [
+      { key: "safety_intro", name: "我都知道了", icon: "🧯" },
+      { key: "battery_simulation", name: "聯聯看高手", icon: "🔋" },
+      { key: "electrical_safety", name: "安全標兵", icon: "💡" }
+    ];
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        const uid = user.uid;
+        const userRef = ref(db, `users/${uid}`);
+        get(userRef).then(snapshot => {
+          if (!snapshot.exists()) return;
+
+          const data = snapshot.val();
+          const profile = data.profile || {};
+          const nickname = profile.nickname || "未設定";
+          const studentId = profile.studentId || "未設定";
+          document.getElementById("userInfo").textContent = `👤 ${nickname} ／ 🆔 ${studentId}`;
+
+          let completedCount = 0;
+
+          modules.forEach(module => {
+            const record = data[module.key];
+            const isCompleted = record?.result === "完成";
+            const score = record?.score;
+
+            const card = document.createElement("div");
+            card.className = "module-card" + (isCompleted ? " completed" : "");
+            card.innerHTML = `
+              <h3>${module.icon} ${module.name}</h3>
+              <p>${score !== undefined ? `得分：${score} 分` : "🔲 尚未完成"}</p>
+            `;
+            document.getElementById("cardContainer").appendChild(card);
+
+            if (isCompleted) completedCount++;
+          });
+
+          const rate = Math.round((completedCount / modules.length) * 100);
+          document.getElementById("progressRate").textContent = `✅ 你已完成 ${completedCount} / ${modules.length} 模組（${rate}%）`;
+
+          if (completedCount === modules.length) {
+            document.getElementById("badgeDisplay").textContent = "🎖️ 恭喜你獲得「電學小博士」徽章！";
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>📘 課程總覽</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* 卡片專屬樣式保留在這 */
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .module-card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      border: 2px solid transparent;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .module-card:hover {
+      transform: scale(1.02);
+    }
+
+    .module-card.completed {
+      border-color: #2ecc71;
+    }
+
+    .module-card a {
+      text-decoration: none;
+      color: #3498db;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main>
+    <h1>📘 課程總覽</h1>
+    <p id="progress">載入中...</p>
+    <div class="module-grid" id="moduleGrid"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const progress = document.getElementById("progress");
+    const moduleGrid = document.getElementById("moduleGrid");
+
+    const modules = [
+      { key: "safety_intro", title: "🧪 實驗室進入須知", href: "safety.html" },
+      { key: "battery_simulation", title: "🔋 電池模擬", href: "simulation.html" },
+      { key: "electrical_safety", title: "💡 電器安全判斷", href: "safety_electric.html" }
+    ];
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        const uid = user.uid;
+        get(ref(db, `users/${uid}`)).then(snapshot => {
+          const data = snapshot.val() || {};
+          let completeCount = 0;
+
+          modules.forEach(mod => {
+            const isDone = data[mod.key];
+            if (isDone) completeCount++;
+
+            const div = document.createElement("div");
+            div.className = "module-card" + (isDone ? " completed" : "");
+            div.innerHTML = `
+              <h2>${mod.title}</h2>
+              <a href="${mod.href}">進入模組</a>
+            `;
+            moduleGrid.appendChild(div);
+          });
+
+          progress.textContent = `你已完成 ${completeCount} / ${modules.length} 個學習模組。`;
+        });
+      }
+    });
+  </script>
+</body>
+</html>

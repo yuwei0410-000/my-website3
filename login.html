@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>登入系統</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main class="content-container">
+    <h1>🔑 使用者登入</h1>
+    <form id="loginForm">
+      <label>Email：<input type="email" id="email" required></label><br><br>
+      <label>密碼：<input type="password" id="password" required></label><br><br>
+      <button type="submit">登入</button>
+    </form>
+    <p id="message"></p>
+    <p>尚未註冊？<a href="register.html">點我註冊</a></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const form = document.getElementById("loginForm");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found") {
+            message.textContent = "❌ 錯誤：此帳號尚未註冊，請前往註冊頁面。";
+          } else {
+            message.textContent = "❌ 錯誤：" + error.message;
+          }
+        });
+    });
+  </script>
+</body>
+</html>

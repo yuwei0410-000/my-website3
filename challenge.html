@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>⚡ 電路挑戰</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		<a href="leaderboard.html">🥇 排行榜</a>
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="content-container">
+    <h1>⚡ 電路挑戰任務</h1>
+    <p>請閱讀下列題目並作答：</p>
+
+    <div id="challenge-area">
+      <p>你希望讓兩顆燈泡亮度相同，應該使用哪種接法？</p>
+      <button onclick="submitChallenge('串聯')">串聯</button>
+      <button onclick="submitChallenge('並聯')">並聯</button>
+      <p id="feedback"></p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let currentUserId = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        currentUserId = user.uid;
+      }
+    });
+
+    window.submitChallenge = function(answer) {
+      const feedback = document.getElementById("feedback");
+      if (answer === '並聯') {
+        feedback.textContent = "✅ 答對了！並聯接法可以讓燈泡亮度相同。";
+        set(ref(db, 'users/' + currentUserId + '/battery_challenge'), {
+          result: '完成',
+          answer: '並聯',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        feedback.textContent = "❌ 答錯了，再試一次喔！";
+      }
+    }
+  </script>
+</body>
+</html>

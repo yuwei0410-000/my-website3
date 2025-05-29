@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase 測試儲存資料</title>
+</head>
+<body>
+  <h1>🔧 Firebase 寫入測試</h1>
+
+  <label>使用者 ID：
+    <input type="text" id="userId" value="user001">
+  </label><br><br>
+
+  <label>學習模組：
+    <input type="text" id="module" value="battery_simulation">
+  </label><br><br>
+
+  <label>狀態：
+    <input type="text" id="status" value="已完成">
+  </label><br><br>
+
+  <button onclick="saveProgress()">📤 儲存到 Firebase</button>
+
+  <p id="result"></p>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ✅ 你的專案設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyDfFQ0US5aQqwg6rmBAF8SGeW6a0MMmMay",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo",
+      storageBucket: "s11155037-chimo.appspot.com",
+      messagingSenderId: "275168945422",
+      appId: "1:275168945422:web:8d556ed6dc43a80977a35f",
+      measurementId: "G-3FDWPGVP2F"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 儲存學習資料
+    window.saveProgress = function () {
+      const userId = document.getElementById('userId').value;
+      const module = document.getElementById('module').value;
+      const status = document.getElementById('status').value;
+
+      set(ref(db, 'users/' + userId + '/' + module), {
+        result: status,
+        timestamp: new Date().toISOString()
+      }).then(() => {
+        document.getElementById('result').innerText = "✅ 資料已寫入 Firebase！";
+      }).catch((error) => {
+        document.getElementById('result').innerText = "❌ 寫入失敗：" + error;
+      });
+    };
+  </script>
+</body>
+</html>

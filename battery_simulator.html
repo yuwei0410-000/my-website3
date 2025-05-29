@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>📷 電路判斷選擇題</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main id="quiz-container">
+    <h1>🧪 電路判斷選擇題</h1>
+    <div id="quiz">
+      <h2 id="qNumber">
+        <span id="currentIndex">第 1 題</span> / <span id="totalQuestions">共 5 題</span>
+      </h2>
+      <img id="questionImage" src="" alt="題目圖片">
+      <div class="btn-group">
+        <button onclick="checkAnswer('串聯')">串聯</button>
+        <button onclick="checkAnswer('並聯')">並聯</button>
+      </div>
+      <p id="feedback"></p>
+      <button id="nextBtn" onclick="nextQuestion()" style="display:none">下一題</button>
+    </div>
+    <h2 id="result" style="display:none;"></h2>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let uid = null;
+    let score = 0;
+    let current = 0;
+    let selectedQuestions = [];
+
+    const questionBank = [
+      { id: "q01.png", answer: "串聯" },
+      { id: "q02.png", answer: "串聯" },
+      { id: "q03.png", answer: "串聯" },
+      { id: "q04.png", answer: "串聯" },
+      { id: "q05.png", answer: "串聯" },
+      { id: "q06.png", answer: "並聯" },
+      { id: "q07.png", answer: "並聯" },
+      { id: "q08.png", answer: "並聯" },
+      { id: "q09.png", answer: "並聯" },
+      { id: "q10.png", answer: "並聯" }
+    ];
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        uid = user.uid;
+        startQuiz();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function startQuiz() {
+      selectedQuestions = questionBank.sort(() => 0.5 - Math.random()).slice(0, 5);
+      document.getElementById("totalQuestions").textContent = `共 ${selectedQuestions.length} 題`;
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = selectedQuestions[current];
+      document.getElementById("currentIndex").textContent = `第 ${current + 1} 題`;
+      document.getElementById("questionImage").src = `img/${q.id}`;
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("nextBtn").style.display = "none";
+    }
+
+    window.checkAnswer = function (choice) {
+      const correct = selectedQuestions[current].answer;
+      const feedback = document.getElementById("feedback");
+      if (choice === correct) {
+        score++;
+        feedback.textContent = "✅ 答對了！";
+        feedback.style.color = "green";
+      } else {
+        feedback.textContent = "❌ 答錯了，正確答案是：" + correct;
+        feedback.style.color = "red";
+      }
+      document.getElementById("nextBtn").style.display = "inline-block";
+    };
+
+    window.nextQuestion = function () {
+      current++;
+      if (current < selectedQuestions.length) {
+        showQuestion();
+      } else {
+        document.getElementById("quiz").style.display = "none";
+        const resultText = `您答對了 ${score} 題，得分 ${score * 20} 分`;
+        document.getElementById("result").textContent = resultText;
+        document.getElementById("result").style.display = "block";
+
+        if (uid) {
+          update(ref(db, `users/${uid}/battery_simulation`), {
+            score: score * 20,
+            correct: score,
+            result: "完成",
+            timestamp: Date.now()
+          });
+        }
+      }
+    };
+  </script>
+</body>
+</html>

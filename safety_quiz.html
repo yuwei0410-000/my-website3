@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>實驗室安全測驗</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .quiz-container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .question {
+      margin-bottom: 30px;
+    }
+
+    .question h3 {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    .feedback {
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="quiz-container">
+    <h1>🧪 實驗室安全測驗</h1>
+
+    <form id="quizForm">
+      <div class="question">
+        <h3>1. 進入實驗室應該穿著什麼？</h3>
+        <label><input type="radio" name="q1" value="A" /> A. 便服和拖鞋</label>
+        <label><input type="radio" name="q1" value="B" /> B. 實驗袍與包鞋</label>
+        <label><input type="radio" name="q1" value="C" /> C. 運動服和涼鞋</label>
+      </div>
+
+      <div class="question">
+        <h3>2. 可以用濕手碰觸插座嗎？</h3>
+        <label><input type="radio" name="q2" value="A" /> A. 可以，沒關係</label>
+        <label><input type="radio" name="q2" value="B" /> B. 不可以，會有觸電危險</label>
+        <label><input type="radio" name="q2" value="C" /> C. 看情況</label>
+      </div>
+
+      <div class="question">
+        <h3>3. 使用儀器設備前應該先？</h3>
+        <label><input type="radio" name="q3" value="A" /> A. 馬上操作</label>
+        <label><input type="radio" name="q3" value="B" /> B. 詢問同學</label>
+        <label><input type="radio" name="q3" value="C" /> C. 瞭解使用方法與注意事項</label>
+      </div>
+
+      <div class="question">
+        <h3>4. 如果藥品有刺鼻氣味，應該怎麼聞？</h3>
+        <label><input type="radio" name="q4" value="A" /> A. 直接聞</label>
+        <label><input type="radio" name="q4" value="B" /> B. 用嘴巴吸</label>
+        <label><input type="radio" name="q4" value="C" /> C. 用手搧聞，不可直接聞</label>
+      </div>
+
+      <button type="submit">交卷並查看成績</button>
+    </form>
+
+    <div id="result" class="feedback"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let uid = null;
+
+    const answers = {
+      q1: "B",
+      q2: "B",
+      q3: "C",
+      q4: "C"
+    };
+
+    const form = document.getElementById("quizForm");
+    const resultDiv = document.getElementById("result");
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        uid = user.uid;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      let score = 0;
+      const total = Object.keys(answers).length;
+
+      for (let key in answers) {
+        const selected = form[key].value;
+        if (selected === answers[key]) {
+          score += 25;  // 每題 25 分
+        }
+      }
+
+      resultDiv.textContent = `✅ 你答對 ${score / 25} 題，總得分：${score} 分`;
+
+      if (uid) {
+        update(ref(db, `users/${uid}/safety_quiz`), {
+          result: "完成",
+          score: score,
+          timestamp: Date.now()
+        });
+      }
+    });
+  </script>
+</body>
+</html>

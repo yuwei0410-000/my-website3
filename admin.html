@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>學習成果檢視</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 95%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .content-container {
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+ 
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <main class="content-container">
+    <h1>📊 學習成果檢視</h1>
+    <div id="output"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const output = document.getElementById("output");
+
+    const modules = [
+      { key: "safety_intro", name: "實驗室須知" },
+      { key: "battery_simulation", name: "電池模擬" },
+      { key: "electrical_safety", name: "電器安全" }
+    ];
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const uid = user.uid;
+      get(ref(db, `users/${uid}/profile`)).then(profileSnap => {
+        const currentProfile = profileSnap.val() || {};
+        const isTeacher = currentProfile.role === "teacher";
+
+        get(ref(db, "users")).then(snapshot => {
+          const allUsers = snapshot.val() || {};
+
+          if (isTeacher) {
+            // 教師看所有人
+            let html = `<h2>👩‍🏫 教師視角：全班模組成績</h2>`;
+            html += `
+              <table>
+                <thead>
+                  <tr>
+                    <th>暱稱</th>
+                    <th>學號</th>
+                    ${modules.map(m => `<th>${m.name}</th>`).join("")}
+                    <th>安全測驗分數</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.values(allUsers).map(user => {
+                    const p = user.profile || {};
+                    const cells = modules.map(m => {
+                      const moduleData = user[m.key];
+                      return moduleData?.score !== undefined
+                        ? `<td>${moduleData.score}</td>`
+                        : `<td>未完成</td>`;
+                    }).join("");
+                    return `<tr>
+                      <td>${p.nickname || "無"}</td>
+                      <td>${p.studentId || "無"}</td>
+                      ${cells}
+                      <td>${user.safety_quiz?.score ?? "未測驗"}</td>
+                    </tr>`;
+                  }).join("")}
+                </tbody>
+              </table>
+            `;
+            output.innerHTML = html;
+
+          } else {
+            // 學生只看自己
+            const userData = allUsers[uid] || {};
+            const p = userData.profile || {};
+            let html = `<h2>👨‍🎓 學生視角：個人成績</h2>`;
+            html += `
+              <table>
+                <thead>
+                  <tr>
+                    <th>模組</th>
+                    <th>分數</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${modules.map(m => {
+                    const moduleData = userData[m.key];
+                    return `<tr>
+                      <td>${m.name}</td>
+                      <td>${moduleData?.score ?? "未完成"}</td>
+                    </tr>`;
+                  }).join("")}
+                  <tr>
+                    <td>安全測驗</td>
+                    <td>${userData.safety_quiz?.score ?? "未測驗"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            `;
+            output.innerHTML = html;
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

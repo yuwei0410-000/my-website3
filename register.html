@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>註冊帳號</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="content-container">
+    <h1>🔐 註冊帳號</h1>
+    <form id="registerForm">
+      <label>Email：<input type="email" id="email" required></label><br><br>
+      <label>密碼：<input type="password" id="password" required></label><br><br>
+      <label>學號：<input type="text" id="studentId" required></label><br><br>
+      <button type="submit">註冊</button>
+    </form>
+    <p id="message"></p>
+    <p>已有帳號？<a href="login.html">點我登入</a></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const form = document.getElementById("registerForm");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const studentId = document.getElementById("studentId").value;
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const uid = userCredential.user.uid;
+          set(ref(db, 'users/' + uid + '/profile'), {
+            email: email,
+            studentId: studentId,
+            role: 'student'
+          });
+
+          // 自動登入並跳轉
+          return signInWithEmailAndPassword(auth, email, password);
+        })
+        .then(() => {
+          localStorage.setItem("email", email);
+          localStorage.setItem("studentId", studentId);
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          if (error.code === "auth/weak-password") {
+            message.textContent = "❌ 錯誤：密碼至少需為 6 個字元。";
+          } else {
+            if (error.code === "auth/email-already-in-use") {
+            message.textContent = "❌ 錯誤：此帳號已被註冊。";
+          } else {
+            message.textContent = "❌ 錯誤：" + error.message;
+          }
+          }
+        });
+    });
+  </script>
+</body>
+</html>

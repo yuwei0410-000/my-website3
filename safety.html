@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>實驗室進入須知</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .content-container {
+      text-align: center;
+    }
+
+    .options {
+      margin: 20px 0;
+    }
+
+    .options button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+
+    .section {
+      display: none;
+      max-width: 700px;
+      margin: 0 auto 20px;
+      text-align: left;
+    }
+
+    video {
+      width: 100%;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="content-container">
+    <h1>🧪 實驗室進入須知</h1>
+
+    <div class="options">
+		<button onclick="toggleSection('video')">🎥 觀看影片</button>
+		<button onclick="toggleSection('text')">📖 閱讀文字介紹</button>
+		<button id="startQuiz" onclick="location.href='safety_quiz.html'" disabled>✅ 開始作答</button>
+	</div>
+
+
+    <div id="videoSection" class="section">
+      <h2>教學影片</h2>
+      <video id="introVideo" controls>
+        <source src="video/intro.mp4" type="video/mp4">
+        您的瀏覽器不支援影片播放。
+      </video>
+    </div>
+
+    <div id="textSection" class="section">
+      <h2>實驗須知文字內容</h2>
+      <ul>
+        <li>進入實驗室穿著實驗袍</li>
+        <li>頭髮過長須綁好固定</li>
+		<li>禁止飲食</li>
+		<li>禁止嬉戲奔跑</li>
+        <li>加熱試管時不能將管口對準自己或同學，避免噴濺</li>
+		<li>傾倒液體時須放置在桌上，並使用玻璃棒，讓液體順流而下</li>
+		<li>潮濕環境下不可使用電器</li>
+		<li>有毒或揮發性氣體應在抽風櫃完成</li>
+		<li>酒精燈附近避免可燃物</li>
+		<li>嗅聞氣味時，應用手搧聞，不可直接聞或是品嚐藥品</li>
+		<li>傾倒液體時須保持注視該液體與器皿，不可分心</li>
+		
+      </ul>
+      <button id="markRead">我已閱讀完畢</button>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let uid = null;
+    let videoDone = false;
+    let textDone = false;
+
+    const quizBtn = document.getElementById("startQuiz");
+    const video = document.getElementById("introVideo");
+    const markRead = document.getElementById("markRead");
+
+    function unlockQuiz() {
+      if ((videoDone || textDone) && uid) {
+        quizBtn.disabled = false;
+        update(ref(db, `users/${uid}/safety_intro`), {
+          result: "完成",
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    function toggleSection(type) {
+      document.getElementById("videoSection").style.display = type === "video" ? "block" : "none";
+      document.getElementById("textSection").style.display = type === "text" ? "block" : "none";
+    }
+
+    // 觸發完成條件
+    video.addEventListener("ended", () => {
+      videoDone = true;
+      unlockQuiz();
+    });
+
+    markRead.addEventListener("click", () => {
+      textDone = true;
+      markRead.disabled = true;
+      unlockQuiz();
+    });
+
+    // Firebase 授權登入
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        uid = user.uid;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // ⚠️ 全域註冊：讓 onclick 呼叫能找到函式
+    window.toggleSection = toggleSection;
+  </script>
+</body>
+</html>

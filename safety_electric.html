@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>💡 電器安全判斷</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    nav {
+      background-color: #f0f0f0;
+      padding: 10px;
+      text-align: center;
+    }
+    nav a {
+      margin: 0 12px;
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+    }
+    button {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">🏠 首頁</a>
+    <a href="announcements.html">📢 最新公告</a>
+    <a href="course.html">📘 課程練習</a>
+    <a href="review.html">🏆 個人成果</a>
+    <a href="admin.html">📊 成績檢視</a>
+    <a href="profile.html">⚙️ 設定</a>
+  </nav>
+
+  <h1>💡 電器安全判斷小遊戲</h1>
+  <p>請判斷下列行為是否安全。</p>
+
+  <div id="quiz-container">
+    <p id="question-text"></p>
+    <button onclick="submitAnswer('safe')">這是安全的</button>
+    <button onclick="submitAnswer('danger')">這是危險的</button>
+    <p id="feedback"></p>
+    <p id="explanation" style="color: #888;"></p>
+    <button id="next-button" style="display:none;" onclick="nextQuestion()">下一題</button>
+    <p id="progress"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      projectId: "s11155037-chimo",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let currentUserId = null;
+    let currentQuestion = 0;
+    let correctCount = 0;
+    let isAnswered = false;
+
+    const allQuestions = [
+      { text: "濕手碰插頭", correct: "danger", explanation: "濕手容易導電，可能導致觸電，非常危險。" },
+      { text: "插頭破損仍使用", correct: "danger", explanation: "插頭破損可能導致漏電或短路，應立即更換。" },
+      { text: "乾手插拔電器", correct: "safe", explanation: "乾手插拔電器是正確的做法，可降低觸電風險。" },
+      { text: "在浴室用延長線", correct: "danger", explanation: "浴室潮濕，用延長線非常危險，容易觸電。" },
+      { text: "拔插頭前先關電源", correct: "safe", explanation: "先關電源能避免拔插頭時產生火花。" },
+      { text: "將電線放在地上讓人踩", correct: "danger", explanation: "電線被踩容易損壞，甚至引起火災。" },
+      { text: "電器靠近水槽擺放", correct: "danger", explanation: "水會導電，電器應遠離水源。" },
+      { text: "電風扇電線纏繞太緊", correct: "danger", explanation: "電線太緊可能導致破皮，危險。" },
+      { text: "長時間使用延長線", correct: "danger", explanation: "長時間使用會導致過熱，有火災風險。" },
+      { text: "電器閒置時拔掉插頭", correct: "safe", explanation: "可避免電器待機耗電和突發危險。" },
+      { text: "用電器前先確認插頭有無破損", correct: "safe", explanation: "安全檢查可避免電器故障與危險。" },
+      { text: "洗澡時使用手機充電器", correct: "danger", explanation: "水氣與充電器接觸可能導致觸電。" },
+      { text: "電線接頭用膠帶隨意纏繞", correct: "danger", explanation: "這樣容易引發短路或漏電。" },
+      { text: "插頭插不進去就用力插", correct: "danger", explanation: "強行插入可能損壞插座並導致觸電。" },
+      { text: "使用電器時雙手保持乾燥", correct: "safe", explanation: "可大幅降低觸電風險。" },
+      { text: "使用多孔插座一次插很多電器", correct: "danger", explanation: "超載可能導致過熱與火災。" },
+      { text: "夜晚外出時關掉不必要的電器", correct: "safe", explanation: "避免電器過熱與意外風險。" },
+      { text: "拖線盤還未拉開就使用", correct: "danger", explanation: "電線未展開容易過熱。" },
+      { text: "檢查延長線有無過熱現象", correct: "safe", explanation: "定期檢查有助於早期發現危險。" },
+      { text: "電線破損立即更換", correct: "safe", explanation: "防止漏電或火災發生。" }
+    ];
+
+    const questions = [...allQuestions].sort(() => Math.random() - 0.5);
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        currentUserId = user.uid;
+        loadQuestion();
+      }
+    });
+
+    function loadQuestion() {
+      const q = questions[currentQuestion];
+      document.getElementById("question-text").textContent = q.text;
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("explanation").textContent = "";
+      document.getElementById("next-button").style.display = "none";
+      document.getElementById("progress").textContent = `題目 ${currentQuestion + 1} / ${questions.length}`;
+      isAnswered = false;
+    }
+
+    window.submitAnswer = function(answer) {
+      if (isAnswered) return;
+      isAnswered = true;
+
+      const q = questions[currentQuestion];
+      const feedback = document.getElementById("feedback");
+      const explanation = document.getElementById("explanation");
+
+      if (answer === q.correct) {
+        feedback.textContent = "✅ 答對了！";
+        correctCount++;
+      } else {
+        feedback.textContent = "❌ 答錯了。";
+        explanation.textContent = "📘 解析：" + q.explanation;
+      }
+
+      document.getElementById("next-button").style.display = "inline-block";
+    };
+
+    window.nextQuestion = function() {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        loadQuestion();
+      } else {
+        document.getElementById("quiz-container").innerHTML = `
+          <h2>🎉 測驗結束</h2>
+          <p>你答對了 ${correctCount} / ${questions.length} 題！</p>
+        `;
+        set(ref(db, `users/${currentUserId}/electrical_safety`), {
+          result: `完成 ${correctCount}/${questions.length}`,
+          score: correctCount,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+  </script>
+</body>
+</html>

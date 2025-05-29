@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>✏️ 新增公告</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .form-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    .feedback {
+      text-align: center;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+	
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="form-container">
+    <h1>✏️ 新增公告</h1>
+    <form id="announcementForm">
+      <label>公告標題：
+        <input type="text" id="title" required />
+      </label>
+      <label>公告內容：
+        <textarea id="content" rows="6" required></textarea>
+      </label>
+      <button type="submit">📢 發佈公告</button>
+    </form>
+    <div id="feedback" class="feedback"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const form = document.getElementById("announcementForm");
+    const feedback = document.getElementById("feedback");
+
+    let authorEmail = null;
+
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        authorEmail = user.email;
+      }
+    });
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const title = document.getElementById("title").value.trim();
+      const content = document.getElementById("content").value.trim();
+
+      if (!title || !content) return;
+
+      const data = {
+        title,
+        content,
+        timestamp: Date.now(),
+        author: authorEmail
+      };
+
+      push(ref(db, "announcements"), data)
+        .then(() => {
+          feedback.textContent = "✅ 公告已成功發佈！";
+          form.reset();
+        })
+        .catch(err => {
+          feedback.textContent = "❌ 發佈失敗：" + err.message;
+        });
+    });
+  </script>
+</body>
+</html>

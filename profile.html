@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>帳號設定</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="content-container">
+    <h1>⚙️ 帳號設定</h1>
+
+    <!-- ✅ 使用者資訊顯示區 -->
+    <section id="userInfo" style="margin-top: 20px;">
+      <p id="displayName">👤 暱稱：讀取中...</p>
+      <p id="displayEmail">📧 Email：讀取中...</p>
+      <p id="displayStudentId">🆔 學號：讀取中...</p>
+    </section>
+
+    <!-- ✅ 按鈕切換 -->
+    <div style="margin-top: 20px;">
+      <button onclick="showSection('nickname')">✏️ 修改暱稱</button>
+      <button onclick="showSection('password')">🔑 修改密碼</button>
+      <button onclick="showSection('email')">📧 修改 Email</button>
+      <button onclick="logout()">🚪 登出帳號</button>
+    </div>
+
+    <!-- ✅ 各區塊 -->
+    <section id="nicknameSection" style="display:none; margin-top: 20px;">
+      <form id="nicknameForm">
+        <label>新暱稱：<input type="text" id="newNickname" required /></label>
+        <button type="submit">更新暱稱</button>
+      </form>
+    </section>
+
+    <section id="passwordSection" style="display:none; margin-top: 20px;">
+      <form id="passwordForm">
+        <label>新密碼：<input type="password" id="newPassword" required /></label>
+        <button type="submit">變更密碼</button>
+      </form>
+    </section>
+
+    <section id="emailSection" style="display:none; margin-top: 20px;">
+      <form id="emailForm">
+        <label>新 Email：<input type="email" id="newEmail" required /></label>
+        <button type="submit">變更 Email</button>
+      </form>
+    </section>
+
+    <p id="message" style="margin-top: 20px;"></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged, updatePassword, updateEmail, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    const message = document.getElementById("message");
+
+    let currentUser;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        currentUser = user;
+        const uid = user.uid;
+
+        // 🔍 顯示個人資料
+        const profileRef = ref(db, `users/${uid}/profile`);
+        get(profileRef).then(snapshot => {
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            document.getElementById("displayName").textContent = `👤 暱稱：${data.nickname || "未設定"}`;
+            document.getElementById("displayEmail").textContent = `📧 Email：${data.email || user.email}`;
+            document.getElementById("displayStudentId").textContent = `🆔 學號：${data.studentId || "未設定"}`;
+            document.getElementById("newNickname").value = data.nickname || "";
+          } else {
+            document.getElementById("displayName").textContent = `👤 暱稱：未設定`;
+            document.getElementById("displayEmail").textContent = `📧 Email：${user.email}`;
+            document.getElementById("displayStudentId").textContent = `🆔 學號：未設定`;
+          }
+        });
+
+        // ✏️ 修改暱稱
+        document.getElementById("nicknameForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const newNick = document.getElementById("newNickname").value;
+          update(ref(db, `users/${uid}/profile`), { nickname: newNick })
+            .then(() => {
+              message.textContent = "✅ 暱稱已更新！";
+              document.getElementById("displayName").textContent = `👤 暱稱：${newNick}`;
+            })
+            .catch(error => message.textContent = "❌ 錯誤：" + error.message);
+        });
+
+        // 🔑 修改密碼
+        document.getElementById("passwordForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const newPassword = document.getElementById("newPassword").value;
+          updatePassword(user, newPassword)
+            .then(() => message.textContent = "✅ 密碼已成功變更。")
+            .catch(error => message.textContent = "❌ 錯誤：" + error.message);
+        });
+
+        // 📧 修改 Email
+        document.getElementById("emailForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const newEmail = document.getElementById("newEmail").value;
+          updateEmail(user, newEmail)
+            .then(() => update(ref(db, `users/${uid}/profile`), { email: newEmail }))
+            .then(() => {
+              message.textContent = "✅ Email 已成功變更。";
+              document.getElementById("displayEmail").textContent = `📧 Email：${newEmail}`;
+            })
+            .catch(error => message.textContent = "❌ 錯誤：" + error.message);
+        });
+      }
+    });
+
+    // 🧭 切換區塊顯示
+    function showSection(type) {
+      document.getElementById("nicknameSection").style.display = type === "nickname" ? "block" : "none";
+      document.getElementById("passwordSection").style.display = type === "password" ? "block" : "none";
+      document.getElementById("emailSection").style.display = type === "email" ? "block" : "none";
+    }
+
+    // 🚪 登出
+    function logout() {
+      if (confirm("確定要登出嗎？")) {
+        signOut(auth)
+          .then(() => window.location.href = "login.html")
+          .catch(error => message.textContent = "❌ 登出失敗：" + error.message);
+      }
+    }
+
+    window.showSection = showSection;
+    window.logout = logout;
+  </script>
+</body>
+</html>

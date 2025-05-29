@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>🔋 電池模擬互動</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .intro {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    .intro h2 {
+      margin-top: 0;
+    }
+
+    .intro img {
+      max-width: 100%;
+      margin: 10px 0;
+    }
+
+    #markReadBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+	
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main>
+    <section class="intro">
+      <h2>📘 電池串聯與並聯介紹</h2>
+      <p>🔋 <strong>串聯</strong>：電壓會相加，電流相同。</p>
+      <p>🪫 <strong>並聯</strong>：電壓相同，電流會相加。</p>
+      <img src="img/燈泡的並串.png" alt="燈泡並串聯示意圖" />
+      <button id="markReadBtn">✅ 我已閱讀完畢，開始模擬</button>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const markReadBtn = document.getElementById("markReadBtn");
+
+    let uid = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        uid = user.uid;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    markReadBtn.addEventListener("click", () => {
+      if (!uid) return;
+
+      update(ref(db, `users/${uid}/battery_simulation`), {
+        result: "完成",
+        timestamp: Date.now()
+      }).then(() => {
+        window.location.href = "battery_simulator.html";
+      });
+    });
+  </script>
+</body>
+</html>

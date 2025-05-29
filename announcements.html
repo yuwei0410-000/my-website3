@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>📢 最新公告</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .announcement-container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .announcement {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fafafa;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .announcement h3 {
+      margin-top: 0;
+    }
+
+    .announcement small {
+      display: block;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    #searchInput {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    #addBtn {
+      display: none;
+      text-align: right;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+  <main class="announcement-container">
+    <h1>📢 最新公告</h1>
+    <div id="addBtn">
+      <a href="announcement_admin.html"><button>✏️ 新增公告（僅限教師）</button></a>
+    </div>
+    <input type="text" id="searchInput" placeholder="🔍 搜尋標題或內容關鍵字..." />
+    <div id="announcementList">公告載入中...</div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const announcementList = document.getElementById("announcementList");
+    const searchInput = document.getElementById("searchInput");
+    const addBtn = document.getElementById("addBtn");
+
+    let allAnnouncements = [];
+    let userRole = null;
+
+    function renderAnnouncements(data, keyword = "") {
+      announcementList.innerHTML = "";
+
+      const filtered = data.filter(a =>
+        (a.title || "").toLowerCase().includes(keyword.toLowerCase()) ||
+        (a.content || "").toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      if (filtered.length === 0) {
+        announcementList.textContent = "❗ 沒有符合搜尋的公告。";
+        return;
+      }
+
+      filtered.forEach(a => {
+        const div = document.createElement("div");
+        div.className = "announcement";
+
+        const header = document.createElement("h3");
+        header.textContent = a.title;
+
+        const meta = document.createElement("small");
+        meta.textContent = `📅 ${new Date(a.timestamp).toLocaleString()}｜👤 ${a.author}`;
+
+        const contentFull = document.createElement("div");
+        contentFull.textContent = a.content;
+        contentFull.style.marginTop = "8px";
+
+        div.appendChild(header);
+        div.appendChild(meta);
+        div.appendChild(contentFull);
+
+        // 教師專用按鈕
+        if (userRole === "teacher") {
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "✏️ 編輯";
+          editBtn.style.marginRight = "10px";
+          editBtn.onclick = () => {
+            window.location.href = `announcement_edit.html?id=${a.id}`;
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "🗑️ 刪除";
+          deleteBtn.onclick = () => {
+            if (confirm("確定要刪除這則公告嗎？")) {
+              remove(ref(db, `announcements/${a.id}`)).then(() => {
+                alert("✅ 已刪除公告");
+                location.reload();
+              }).catch(err => {
+                alert("❌ 刪除失敗：" + err.message);
+              });
+            }
+          };
+
+          const btnBox = document.createElement("div");
+          btnBox.style.marginTop = "10px";
+          btnBox.appendChild(editBtn);
+          btnBox.appendChild(deleteBtn);
+          div.appendChild(btnBox);
+        }
+
+        announcementList.appendChild(div);
+      });
+    }
+
+    // 登入後再載入資料
+    onAuthStateChanged(auth, (user) => {
+      if (!user) return;
+
+      get(ref(db, `users/${user.uid}/profile`)).then(snap => {
+        if (snap.exists()) {
+          const profile = snap.val();
+          userRole = profile.role;
+          if (userRole === "teacher") {
+            addBtn.style.display = "block";
+          }
+        }
+
+        // 等身份確定後再載入公告
+        get(ref(db, "announcements")).then(snapshot => {
+          if (!snapshot.exists()) {
+            announcementList.textContent = "❗ 目前尚無公告。";
+            return;
+          }
+
+          allAnnouncements = [];
+          snapshot.forEach(child => {
+            const data = child.val();
+            data.id = child.key;
+            allAnnouncements.push(data);
+          });
+
+          allAnnouncements.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          renderAnnouncements(allAnnouncements);
+        });
+      });
+    });
+
+    // 搜尋監聽
+    searchInput.addEventListener("input", () => {
+      renderAnnouncements(allAnnouncements, searchInput.value);
+    });
+  </script>
+</body>
+</html>

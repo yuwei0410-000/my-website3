@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>✏️ 編輯公告</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 5px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>✏️ 編輯公告</h1>
+
+  <label for="title">公告標題</label>
+  <input type="text" id="title" placeholder="請輸入標題" />
+
+  <label for="content">公告內容</label>
+  <textarea id="content" rows="6" placeholder="請輸入公告內容"></textarea>
+
+  <button id="saveBtn">💾 儲存</button>
+  <button onclick="location.href='announcements.html'">↩ 返回</button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 🔍 取得公告 ID
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    const titleInput = document.getElementById("title");
+    const contentInput = document.getElementById("content");
+    const saveBtn = document.getElementById("saveBtn");
+
+    if (!id) {
+      alert("❌ 無效的公告 ID");
+      location.href = "announcements.html";
+    }
+
+    // 🔄 載入原始公告資料
+    get(ref(db, `announcements/${id}`)).then(snapshot => {
+      if (!snapshot.exists()) {
+        alert("❌ 找不到這則公告");
+        location.href = "announcements.html";
+      } else {
+        const data = snapshot.val();
+        titleInput.value = data.title || "";
+        contentInput.value = data.content || "";
+      }
+    });
+
+    // 💾 儲存修改
+    saveBtn.onclick = () => {
+      const title = titleInput.value.trim();
+      const content = contentInput.value.trim();
+
+      if (!title || !content) {
+        alert("⚠️ 標題與內容不能為空！");
+        return;
+      }
+
+      update(ref(db, `announcements/${id}`), {
+        title,
+        content,
+        timestamp: Date.now() // 可選：更新時間戳
+      }).then(() => {
+        alert("✅ 公告已更新！");
+        location.href = "announcements.html";
+      }).catch(err => {
+        alert("❌ 儲存失敗：" + err.message);
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>互動學習系統首頁</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav>
+		<a href="index.html">🏠 首頁</a>
+		<a href="announcements.html">📢 最新公告</a>
+		<a href="course.html">📘 課程練習</a>
+		<a href="review.html">🏆 個人成果</a>
+		<a href="admin.html">📊 成績檢視</a>
+
+		<a href="profile.html">⚙️ 設定</a>
+	</nav>
+
+  <main class="content-container">
+    <h1>🎓 互動學習系統</h1>
+    <p id="welcome">歡迎使用！</p>
+    <p id="roleInfo">登入身份：載入中...</p>
+    <div id="summary"></div>
+
+    
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTfQ0US5aQqwg6rmBAF8SGew6a0MMMmaY",
+      authDomain: "s11155037-chimo.firebaseapp.com",
+      databaseURL: "https://s11155037-chimo-default-rtdb.firebaseio.com",
+      projectId: "s11155037-chimo"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const welcome = document.getElementById("welcome");
+    const roleInfo = document.getElementById("roleInfo");
+    const summary = document.getElementById("summary");
+    const addAnnouncementBtn = document.getElementById("addAnnouncementBtn");
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const uid = user.uid;
+
+      get(ref(db, `users/${uid}/profile`)).then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const nickname = data.nickname || "使用者";
+          const role = data.role || "student";
+          welcome.textContent = `歡迎回來，${nickname}！`;
+          roleInfo.textContent = `登入身份：${role === "teacher" ? "教師" : "學生"}`;
+
+          if (role === "teacher") {
+            addAnnouncementBtn.style.display = "block";
+          }
+        } else {
+          welcome.textContent = "歡迎回來，使用者！";
+          roleInfo.textContent = "登入身份：未知";
+        }
+      });
+
+      get(ref(db, `users/${uid}`)).then(snapshot => {
+        const data = snapshot.val();
+        const modules = ["safety_intro", "battery_simulation", "battery_challenge", "electrical_safety"];
+        let complete = 0;
+        modules.forEach(key => {
+          if (data[key]?.result === "完成") complete++;
+        });
+        summary.textContent = `你目前已完成 ${complete} / ${modules.length} 個模組。`;
+      });
+    });
+  </script>
+</body>
+</html>
