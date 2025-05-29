@@ -73,7 +73,7 @@
 
       get(ref(db, `users/${uid}`)).then(snapshot => {
         const data = snapshot.val();
-        const modules = ["safety_intro", "battery_simulation", "battery_challenge", "electrical_safety"];
+        const modules = ["safety_intro", "battery_simulation", "electrical_safety"];
         let complete = 0;
         modules.forEach(key => {
           if (data[key]?.result === "完成") complete++;
