@@ -87,7 +87,7 @@
 
           if (isTeacher) {
             // 教師看所有人
-            let html = `<h2>👩‍🏫 教師視角：全班模組成績</h2>`;
+            let html = `<h2>👩‍🏫 全班模組成績</h2>`;
             html += `
               <table>
                 <thead>
@@ -123,7 +123,7 @@
             // 學生只看自己
             const userData = allUsers[uid] || {};
             const p = userData.profile || {};
-            let html = `<h2>👨‍🎓 學生視角：個人成績</h2>`;
+            let html = `<h2>👨‍🎓 個人成績</h2>`;
             html += `
               <table>
                 <thead>
